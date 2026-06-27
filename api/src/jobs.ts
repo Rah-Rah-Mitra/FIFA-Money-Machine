@@ -46,6 +46,35 @@ export async function listRecentJobs(limit = 50, status?: string) {
   return data ?? [];
 }
 
+// Videos that have a generated mesh scene (for the "analytics available" badge + analytics view).
+export async function listScenes() {
+  const sb = requireSupabase();
+  const { data, error } = await sb
+    .from('analysis_jobs')
+    .select('id,video_id,result,created_at')
+    .eq('pipeline', 'mesh_scene')
+    .eq('status', 'done')
+    .order('created_at', { ascending: false })
+    .limit(200);
+  if (error) throw new Error(error.message);
+  return data ?? [];
+}
+
+export async function getPlayerTags(videoId: string) {
+  const sb = requireSupabase();
+  const { data, error } = await sb.from('player_tags').select('track_id,name,team').eq('video_id', videoId);
+  if (error) throw new Error(error.message);
+  return data ?? [];
+}
+
+export async function setPlayerTag(videoId: string, trackId: number, name: string | null, team: number | null) {
+  const sb = requireSupabase();
+  const { error } = await sb
+    .from('player_tags')
+    .upsert({ video_id: videoId, track_id: trackId, name, team, updated_at: new Date().toISOString() });
+  if (error) throw new Error(error.message);
+}
+
 export async function getJob(videoId: string, jobId: string) {
   const sb = requireSupabase();
   const { data, error } = await sb

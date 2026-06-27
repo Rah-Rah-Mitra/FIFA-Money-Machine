@@ -5,7 +5,7 @@ import { cached } from './cache';
 import * as fifa from './fifa';
 import { buildCatalog } from './catalog';
 import { ingestEvent, getAnalytics } from './events';
-import { PIPELINES, PIPELINE_IDS, enqueueJob, listJobs, getJob, listRecentJobs } from './jobs';
+import { PIPELINES, PIPELINE_IDS, enqueueJob, listJobs, getJob, listRecentJobs, listScenes, getPlayerTags, setPlayerTag } from './jobs';
 
 export const VIDEO_ID = /^[A-Za-z0-9]{10,30}$/;
 
@@ -93,6 +93,35 @@ export function apiRouter(): Router {
   });
 
   r.get('/pipelines', (_req, res) => res.json(PIPELINES));
+
+  // Videos that have a generated mesh scene (badge + analytics view).
+  r.get('/scenes', async (_req, res, next) => {
+    try {
+      res.json(await listScenes());
+    } catch (e) {
+      next(e);
+    }
+  });
+
+  // Editable player tags.
+  r.get('/videos/:id/players', async (req, res, next) => {
+    try {
+      res.json(await getPlayerTags(req.params.id));
+    } catch (e) {
+      next(e);
+    }
+  });
+  r.put('/videos/:id/players/:trackId', async (req, res, next) => {
+    try {
+      const trackId = Number(req.params.trackId);
+      if (!Number.isInteger(trackId)) return res.status(400).json({ error: 'bad trackId' });
+      const body = z.object({ name: z.string().max(64).nullable().optional(), team: z.number().int().nullable().optional() }).parse(req.body);
+      await setPlayerTag(req.params.id, trackId, body.name ?? null, body.team ?? null);
+      res.json({ ok: true });
+    } catch (e) {
+      next(e);
+    }
+  });
 
   // Recent jobs across all videos (optionally ?status=queued|running|done|error).
   r.get('/jobs', async (req, res, next) => {

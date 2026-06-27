@@ -30,6 +30,17 @@ create table if not exists analysis_jobs (
 create index if not exists analysis_jobs_video_idx on analysis_jobs (video_id);
 create index if not exists analysis_jobs_queue_idx on analysis_jobs (status, created_at);
 
+-- Editable player tags (the "skipped feature"): rename auto-detected tracks per video.
+create table if not exists player_tags (
+  video_id    text not null,
+  track_id    integer not null,
+  name        text,
+  team        integer,
+  updated_at  timestamptz not null default now(),
+  primary key (video_id, track_id)
+);
+
 -- RLS on, no policies: anon is fully blocked; the backend uses the service-role key which bypasses RLS.
 alter table playback_events enable row level security;
 alter table analysis_jobs   enable row level security;
+alter table player_tags     enable row level security;

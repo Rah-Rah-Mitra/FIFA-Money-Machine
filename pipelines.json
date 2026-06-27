@@ -8,5 +8,9 @@
   { "id": "match_model", "status": "ready", "gpu": false,
     "description": "Match-result model (Dixon-Coles/Poisson) + xT/VAEP value metrics from public event data. Video-independent estimate." },
   { "id": "mesh_pose", "status": "experimental", "gpu": true,
-    "description": "PEAR SMPLX human-mesh recovery per tracked player; derives camera-space kinematics. Requires an NVIDIA GPU." }
+    "description": "PEAR SMPLX human-mesh recovery per tracked player; derives camera-space kinematics. Requires an NVIDIA GPU." },
+  { "id": "player_stats", "status": "ready", "gpu": false,
+    "description": "Per-player body-part usage (MediaPipe Pose) over screen time — the data behind the stock-market UI. Fast, no GPU." },
+  { "id": "mesh_scene", "status": "ready", "gpu": true,
+    "description": "Full scene: per-player body-part usage + a TRANSPARENT PEAR mesh-overlay video to layer over the highlight. Adds the 'analytics available' tag." }
 ]

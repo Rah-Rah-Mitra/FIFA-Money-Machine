@@ -10,6 +10,11 @@ ultralytics>=8.2          # YOLOv8 detection
 supervision>=0.20,<0.30   # ByteTrack tracker + Detections helpers (ByteTrack API removed in 0.30)
 opencv-python>=4.9
 imageio-ffmpeg>=0.4        # bundles an ffmpeg binary (no system ffmpeg needed)
+mediapipe>=0.10           # fast per-player Pose landmarks -> body-part usage stats
+
+# GPU: ultralytics uses whatever torch is installed. For CUDA, install the matching build, e.g.:
+#   pip install --index-url https://download.pytorch.org/whl/cu126 torch torchvision
+# (the default PyPI torch is CPU-only — that's why the GPU sits idle).
 
 # --- match_model + soccer analytics ---
 penaltyblog>=1.0          # Dixon-Coles / Poisson match modelling (optional path)

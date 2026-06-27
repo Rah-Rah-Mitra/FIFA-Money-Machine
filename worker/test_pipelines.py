@@ -6,6 +6,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from pipelines.match_model import poisson_scoreline, _rates_from_matches
 from pipelines.mesh_pose import link_iou, kinematics, _iou
+from analyze_players import compute_usage, PART_ORDER
 
 
 def test_poisson():
@@ -40,8 +41,24 @@ def test_iou_and_tracking():
     assert moving["camPathLength"] > 0
 
 
+def test_body_usage():
+    import numpy as np
+    # only the right arm moves -> it should hold ~100% of usage share.
+    moving = [11, 13, 15, 17, 19, 21, 12, 14, 16, 18, 20, 22]  # arm landmarks
+    a = np.zeros((33, 3), dtype=float)
+    b = np.zeros((33, 3), dtype=float)
+    for k in [12, 14, 16, 18, 20, 22]:  # right arm only
+        b[k] = [0.3, 0, 0]
+    u = compute_usage([(0, a), (5, b)], (0, 5), buckets=4)
+    assert len(u["right_arm"]["series"]) == 4
+    assert u["right_arm"]["sharePct"] > u["left_arm"]["sharePct"]
+    assert u["right_arm"]["total"] > 0
+    assert set(u.keys()) == set(PART_ORDER)
+
+
 if __name__ == "__main__":
     test_poisson()
     test_rates_from_matches()
     test_iou_and_tracking()
+    test_body_usage()
     print("ok: all worker self-checks passed")

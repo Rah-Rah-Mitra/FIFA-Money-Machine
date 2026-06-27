@@ -1,9 +1,10 @@
 """Runs INSIDE the PEAR env ($PEAR_PYTHON, cwd=$PEAR_DIR). Mirrors PEAR's inference_images.py
 detect->crop->EHM flow. Always writes per-detection SMPLX joints as JSON (--out); optionally also
-renders a mesh-overlay video (--render-out) by compositing PEAR's rendered mesh back onto each frame.
+writes per-frame RGBA mesh PNGs on a TRANSPARENT background (--render-dir) so the worker can encode a
+transparent overlay video. The mesh keeps PEAR's own shading/colour.
 
-Usage (invoked by worker/pipelines/mesh_pose.py):
-    python pear_adapter.py --frames <dir> --out <json> [--min-bbox 50] [--fps 2] [--render-out <mp4>]
+Usage (invoked by worker/pipelines/*):
+    python pear_adapter.py --frames <dir> --out <json> [--min-bbox 50] [--render-dir <dir>]
 """
 import argparse
 import json
@@ -25,8 +26,7 @@ from models.modules.ehm import EHM_v2
 from models.pipeline.ehm_pipeline import Ehm_Pipeline
 from utils.general_utils import ConfigDict, add_extra_cfgs
 
-# reuse PEAR's patch/transform/render helpers (module-level, __main__-guarded)
-import inference_images as inf
+import inference_images as inf  # reuse PEAR's patch/render helpers (module-level, __main__-guarded)
 
 
 def main():
@@ -35,10 +35,9 @@ def main():
     ap.add_argument("--out", required=True)
     ap.add_argument("--config_name", default="infer")
     ap.add_argument("--min-bbox", type=float, default=50.0, help="min bbox height in ORIGINAL pixels")
-    ap.add_argument("--fps", type=int, default=2)
-    ap.add_argument("--render-out", default=None, help="if set, write a mesh-overlay mp4 here")
+    ap.add_argument("--render-dir", default=None, help="if set, write per-frame RGBA mesh PNGs here (transparent bg)")
     args = ap.parse_args()
-    render = bool(args.render_out)
+    render = bool(args.render_dir)
 
     meta_cfg = add_extra_cfgs(ConfigDict(model_config_path=os.path.join("configs", f"{args.config_name}.yaml")))
     lightning.fabric.seed_everything(10)
@@ -55,21 +54,20 @@ def main():
     detector = YOLO("./model_zoo/yolov8x.pt")
     to_tensor = transforms.ToTensor()
 
-    body_renderer = lights = render_dir = None
+    body_renderer = lights = None
     if render:
         body_renderer = inf.BodyRenderer("assets/SMPLX", 1024, focal_length=24.0).cuda()
         lights = inf.PointLights(device="cuda:0", location=[[0.0, -1.0, -10.0]])
-        render_dir = args.out + "_frames"
-        os.makedirs(render_dir, exist_ok=True)
+        os.makedirs(args.render_dir, exist_ok=True)
 
     names = sorted(f for f in os.listdir(args.frames) if f.lower().endswith((".jpg", ".jpeg", ".png")))
     dets = []
     for idx, name in enumerate(names):
         img = inf.load_img(os.path.join(args.frames, name))  # RGB float, upscaled x2 by PEAR's loader
         h2, w2 = img.shape[:2]
-        vis = cv2.cvtColor(img.copy(), cv2.COLOR_RGB2BGR) if render else None
+        canvas = np.zeros((h2, w2, 4), dtype=np.uint8) if render else None  # BGRA, transparent
 
-        boxes = detector.predict(img, device="cuda", classes=0, conf=0.5, save=False, verbose=False)[0]
+        boxes = detector.predict(img, device=0, classes=0, conf=0.5, save=False, verbose=False)[0]
         boxes = boxes.boxes.xyxy.detach().cpu().numpy()
         for b in boxes:
             x1, y1, x2, y2 = (float(v) for v in b)
@@ -86,7 +84,7 @@ def main():
                 smplx = ehm(outputs["body_param"], outputs["flame_param"], pose_type="aa")
             dets.append({
                 "frame": idx,
-                "bbox": [x1 / 2, y1 / 2, x2 / 2, y2 / 2],  # back to original-frame coords
+                "bbox": [x1 / 2, y1 / 2, x2 / 2, y2 / 2],
                 "cam": outputs["pd_cam"][0, :3, 3].detach().cpu().numpy().round(4).tolist(),
                 "joints_body": smplx["joints"][0, :22].detach().cpu().numpy().round(4).tolist(),
             })
@@ -99,19 +97,16 @@ def main():
                 mesh_img = cv2.resize(mesh_img, (256, 256), interpolation=cv2.INTER_AREA)
                 mesh_on_orig = cv2.warpAffine(mesh_img, inv_trans, (w2, h2), flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT, borderValue=0)
                 mask = np.any(mesh_on_orig > 0, axis=-1)
-                vis[mask] = mesh_on_orig[mask]
+                canvas[mask, :3] = mesh_on_orig[mask]   # mesh colour
+                canvas[mask, 3] = 255                    # opaque only where mesh exists
 
         if render:
-            out_frame = cv2.resize(np.clip(vis, 0, 255).astype(np.uint8), (w2 // 2, h2 // 2))  # back to ~original size
-            cv2.imwrite(os.path.join(render_dir, f"mesh_{idx:05d}.jpg"), out_frame)
+            out_png = cv2.resize(canvas, (w2 // 2, h2 // 2), interpolation=cv2.INTER_AREA)  # ~original size
+            cv2.imwrite(os.path.join(args.render_dir, f"mesh_{idx:05d}.png"), out_png)
 
     with open(args.out, "w") as f:
         json.dump(dets, f)
-    print(f"pear_adapter: wrote {len(dets)} detections from {len(names)} frames")
-
-    if render:
-        inf.images_to_video(render_dir, args.render_out, fps=args.fps)
-        print(f"pear_adapter: rendered overlay -> {args.render_out}")
+    print(f"pear_adapter: wrote {len(dets)} detections from {len(names)} frames" + (f"; rgba frames in {args.render_dir}" if render else ""))
 
 
 if __name__ == "__main__":
