@@ -4,7 +4,7 @@ Keep the ids here in sync with repo-root pipelines.json (the API reads that file
 """
 from dataclasses import dataclass
 
-from . import video_metadata, playback_stats, player_tracking, match_model, mesh_pose, player_stats, mesh_scene
+from . import video_metadata, playback_stats, player_tracking, match_model, mesh_pose, player_stats, mesh_scene, pose_scene, full_analysis
 
 
 @dataclass
@@ -24,4 +24,6 @@ REGISTRY = {
     "mesh_pose": mesh_pose.run,
     "player_stats": player_stats.run,
     "mesh_scene": mesh_scene.run,
+    "pose_scene": pose_scene.run,
+    "full_analysis": full_analysis.run,
 }

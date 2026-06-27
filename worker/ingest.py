@@ -30,7 +30,8 @@ def get_play_url(api_base: str, video_id: str) -> str:
 
 
 def extract_frames(
-    play_url: str, out_dir: str, fps: float = 2, max_seconds: int | None = None, start_seconds: float | None = None
+    play_url: str, out_dir: str, fps: float = 2, max_seconds: int | None = None,
+    start_seconds: float | None = None, height: int | None = None,
 ) -> list[str]:
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
@@ -39,7 +40,8 @@ def extract_frames(
     args = [_ffmpeg_bin(), "-y", "-nostdin", "-loglevel", "error", "-user_agent", ua]
     if start_seconds:  # fast input seek (before -i) to skip intro/ad cards
         args += ["-ss", str(start_seconds)]
-    args += ["-i", play_url, "-vf", f"fps={fps}"]
+    vf = f"fps={fps}" + (f",scale=-2:{height}" if height else "")  # downscale for speed
+    args += ["-i", play_url, "-vf", vf]
     if max_seconds:  # -t AFTER -i (output duration); before -i it breaks HLS reads
         args += ["-t", str(max_seconds)]
     args += [str(out / "%05d.jpg")]
@@ -50,13 +52,13 @@ def extract_frames(
     return sorted(str(p) for p in out.glob("*.jpg"))
 
 
-def frames_for(api_base, video_id, out_dir, fps=2, max_seconds=None, start_seconds=None, retries=3):
+def frames_for(api_base, video_id, out_dir, fps=2, max_seconds=None, start_seconds=None, height=None, retries=3):
     """Resolve a fresh stream + extract frames, retrying on transient Uplynk 403s (token/edge hiccups)."""
     last = None
     for _ in range(retries):
         try:
             play = get_play_url(api_base, video_id)
-            frames = extract_frames(play, out_dir, fps=fps, max_seconds=max_seconds, start_seconds=start_seconds)
+            frames = extract_frames(play, out_dir, fps=fps, max_seconds=max_seconds, start_seconds=start_seconds, height=height)
             if frames:
                 return frames
             last = RuntimeError("no frames extracted")

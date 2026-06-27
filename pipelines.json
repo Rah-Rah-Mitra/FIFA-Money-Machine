@@ -12,5 +12,9 @@
   { "id": "player_stats", "status": "ready", "gpu": false,
     "description": "Per-player body-part usage (MediaPipe Pose) over screen time — the data behind the stock-market UI. Fast, no GPU." },
   { "id": "mesh_scene", "status": "ready", "gpu": true,
-    "description": "Full scene: per-player body-part usage + a TRANSPARENT PEAR mesh-overlay video to layer over the highlight. Adds the 'analytics available' tag." }
+    "description": "Full scene: per-player body-part usage + a TRANSPARENT PEAR mesh-overlay video to layer over the highlight. Adds the 'analytics available' tag." },
+  { "id": "pose_scene", "status": "ready", "gpu": true,
+    "description": "Fast GPU YOLO-pose: multi-player keypoints + rich metrics (speed, distance, sprints, symmetry, posture, heatmap, work-rate) + client-side skeleton overlay. The default analytics engine." },
+  { "id": "full_analysis", "status": "ready", "gpu": true,
+    "description": "pose_scene + an auto-picked PEAR 'ultrazoom' mesh of the key moment (smooth, high-fps, low-res crop). The full demo." }
 ]

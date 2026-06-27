@@ -41,6 +41,27 @@ def test_iou_and_tracking():
     assert moving["camPathLength"] > 0
 
 
+def test_pose_metrics():
+    import numpy as np
+    from metrics import analyze_track, PART_ORDER
+    # synthetic track: player drifts right; right arm swings. bbox height 100.
+    seq = []
+    for f in range(10):
+        kp = np.zeros((17, 2)); kp[:] = [50 + f * 5, 50]      # whole body drifts right
+        kp[11], kp[12] = [50 + f * 5, 90], [60 + f * 5, 90]   # hips
+        kp[5], kp[6] = [50 + f * 5, 40], [60 + f * 5, 40]     # shoulders
+        kp[15], kp[16] = [50 + f * 5, 100], [62 + f * 5, 100] # ankles
+        kp[8] = [60 + f * 5, 40 + (f % 2) * 20]               # right elbow swings
+        kp[10] = [60 + f * 5, 40 + (f % 2) * 30]              # right wrist swings
+        seq.append({"f": f, "kp": kp, "c": np.ones(17), "box": (0, 0, 80, 100)})
+    a = analyze_track(seq, fps=10, buckets=6, frame_span=9)
+    assert set(a["parts"].keys()) == set(PART_ORDER)
+    assert a["metrics"]["distance"] > 0
+    assert a["metrics"]["maxSpeed"] > 0
+    assert a["parts"]["right_arm"]["total"] > a["parts"]["left_arm"]["total"]  # only right arm swings
+    assert len(a["activity"]) == 6
+
+
 def test_body_usage():
     import numpy as np
     # only the right arm moves -> it should hold ~100% of usage share.
@@ -61,4 +82,5 @@ if __name__ == "__main__":
     test_rates_from_matches()
     test_iou_and_tracking()
     test_body_usage()
+    test_pose_metrics()
     print("ok: all worker self-checks passed")
