@@ -6,7 +6,7 @@
   <title>Player Analytics</title>
   <script src="https://cdn.jsdelivr.net/npm/hls.js@1"></script>
   <style>
-    :root { color-scheme: dark; --bg:#0b0f14; --card:#151b23; --ink:#e6edf3; --muted:#8b98a5; --accent:#3fb950; --red:#f85149; --line:#222c38; }
+    :root { color-scheme: dark; --bg:#0b0f14; --card:#151b23; --ink:#e6edf3; --muted:#8b98a5; --accent:#3fb950; --red:#f85149; --blue:#56b6e0; --line:#222c38; }
     * { box-sizing: border-box; }
     body { margin:0; font:14px/1.5 system-ui, sans-serif; background:var(--bg); color:var(--ink); }
     .nav { display:flex; align-items:center; gap:14px; padding:12px 20px; border-bottom:1px solid var(--line); background:var(--card); position:sticky; top:0; z-index:20; }
@@ -15,43 +15,49 @@
     .nav a.navlink:hover { color:var(--ink); background:#0d1117; }
     .nav a.navlink.active { color:var(--ink); background:#10241a; border:1px solid var(--accent); }
     .nav .spacer { flex:1; }
-    .titlebar { padding:12px 20px; display:flex; align-items:center; gap:14px; border-bottom:1px solid var(--line); }
-    .titlebar h1 { font-size:16px; margin:0; }
+    .titlebar { padding:12px 20px; display:flex; align-items:baseline; gap:14px; border-bottom:1px solid var(--line); }
+    .titlebar h1 { font-size:16px; margin:0; } .muted { color:var(--muted); }
+    main { max-width:1320px; margin:0 auto; padding:16px; display:grid; gap:16px; grid-template-columns: 1.25fr 1fr; }
+    .full { grid-column:1 / -1; }
+    .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:14px 16px; }
+    .card h3 { margin:0 0 10px; font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; }
     /* hub */
-    #hub { max-width:1280px; margin:0 auto; padding:16px; }
+    #hub { max-width:1320px; margin:0 auto; padding:16px; }
     .hubgrid { display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:14px; margin-top:10px; }
     .scard { background:var(--card); border:1px solid var(--line); border-radius:12px; overflow:hidden; cursor:pointer; text-decoration:none; color:var(--ink); display:block; }
     .scard:hover { border-color:var(--accent); }
     .scard .th { aspect-ratio:16/9; background:#0d1117 center/cover no-repeat; }
     .scard .m { padding:9px 11px; } .scard .m b { font-size:13px; } .scard .m span { color:var(--muted); font-size:12px; }
-    main { max-width:1280px; margin:0 auto; padding:16px; display:grid; gap:16px; grid-template-columns: 1.3fr 1fr; }
-    .full { grid-column:1 / -1; }
-    .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:14px 16px; }
-    .card h3 { margin:0 0 10px; font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; }
-    /* player chips */
+    /* players */
     #players { display:flex; gap:8px; flex-wrap:wrap; }
     .chip { display:flex; align-items:center; gap:7px; background:#0d1117; border:1px solid var(--line); border-radius:20px; padding:5px 12px; cursor:pointer; }
     .chip.active { border-color:var(--accent); background:#10241a; }
     .dot { width:11px; height:11px; border-radius:50%; }
-    .chip input { background:none; border:none; color:var(--ink); font:inherit; width:90px; }
+    .chip input { background:none; border:none; color:var(--ink); font:inherit; width:88px; }
     .chip .fs { color:var(--muted); font-size:11px; }
     /* video + overlay */
     .videowrap { position:relative; background:#000; border-radius:10px; overflow:hidden; aspect-ratio:16/9; }
-    .videowrap video { position:absolute; inset:0; width:100%; height:100%; object-fit:contain; }
-    #ov { pointer-events:none; }
-    .vbar { display:flex; gap:12px; align-items:center; margin-top:8px; color:var(--muted); font-size:12px; }
+    .videowrap video, .videowrap canvas { position:absolute; inset:0; width:100%; height:100%; }
+    .videowrap video { object-fit:contain; } #skel { pointer-events:none; } #ov { pointer-events:none; }
+    .vbar { display:flex; gap:14px; align-items:center; margin-top:8px; color:var(--muted); font-size:12px; flex-wrap:wrap; }
+    button.toggle { font:inherit; background:#0d1117; color:var(--ink); border:1px solid var(--line); border-radius:7px; padding:5px 10px; cursor:pointer; }
+    button.toggle:hover { border-color:var(--accent); }
+    /* scorecard */
+    .gaugewrap { display:flex; gap:16px; align-items:center; }
+    .kpis { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; flex:1; }
+    .kpi { background:#0d1117; border:1px solid var(--line); border-radius:9px; padding:8px 10px; }
+    .kpi b { display:block; font-size:18px; } .kpi span { color:var(--muted); font-size:11px; }
     /* table */
     table { width:100%; border-collapse:collapse; }
     th { text-align:left; color:var(--muted); font-size:11px; text-transform:uppercase; border-bottom:1px solid var(--line); padding:6px; font-weight:500; }
     td { padding:8px 6px; border-bottom:1px solid #161d26; }
-    .tick { font-weight:600; letter-spacing:.03em; }
-    .up { color:var(--accent); } .down { color:var(--red); }
-    /* heatmap */
-    #heat { display:flex; gap:4px; height:120px; align-items:stretch; }
-    #heat .tile { border-radius:8px; padding:8px; display:flex; flex-direction:column; justify-content:space-between; color:#06210f; font-weight:600; overflow:hidden; min-width:36px; }
-    #heat .tile small { font-size:10px; opacity:.85; }
-    .muted { color:var(--muted); }
-    button.toggle { font:inherit; background:#0d1117; color:var(--ink); border:1px solid var(--line); border-radius:7px; padding:5px 10px; cursor:pointer; }
+    .tick { font-weight:600; } .up { color:var(--accent); } .down { color:var(--red); }
+    /* heatmap grid + activity */
+    .heatgrid { display:grid; gap:2px; }
+    .heatgrid div { border-radius:2px; aspect-ratio:1/1; }
+    .bars { display:flex; align-items:flex-end; gap:3px; height:90px; }
+    .bars div { flex:1; background:var(--accent); border-radius:3px 3px 0 0; min-height:2px; opacity:.85; }
+    select { font:inherit; background:#0d1117; color:var(--ink); border:1px solid var(--line); border-radius:7px; padding:5px 8px; }
     @media (max-width:900px){ main { grid-template-columns:1fr; } }
   </style>
 </head>
@@ -63,14 +69,11 @@
     <span class="spacer"></span>
     <span class="muted" style="font-size:13px">player body-part usage</span>
   </nav>
-  <div class="titlebar">
-    <h1 id="title">Player Analytics</h1>
-    <span class="muted" id="sub"></span>
-  </div>
+  <div class="titlebar"><h1 id="title">Player Analytics</h1><span class="muted" id="sub"></span></div>
 
   <div id="hub" style="display:none">
     <p class="muted">Pick a match with generated analytics. Don't see yours? Open it in
-      <a href="/" style="color:var(--accent)">Markets</a>, run <b>mesh_scene</b> (or <b>player_stats</b>), then come back.</p>
+      <a href="/" style="color:var(--accent)">Markets</a>, run <b>full_analysis</b> (or <b>pose_scene</b>), then come back.</p>
     <div class="hubgrid" id="hubgrid"></div>
   </div>
 
@@ -81,32 +84,36 @@
     </div>
 
     <div class="card">
-      <h3>Body-part usage over screen time</h3>
-      <div id="chart"></div>
-    </div>
-
-    <div class="card">
-      <h3>Mesh overlay</h3>
-      <div class="videowrap"><video id="hl" muted playsinline></video><video id="ov" muted loop playsinline></video></div>
+      <h3>Live skeleton overlay</h3>
+      <div class="videowrap"><video id="hl" muted playsinline></video><canvas id="skel"></canvas><video id="ov" muted loop playsinline style="display:none"></video></div>
       <div class="vbar">
-        <label><input type="checkbox" id="ovon" checked> show mesh</label>
         <button class="toggle" id="playbtn">▶ play</button>
+        <label><input type="checkbox" id="skelon" checked> skeleton</label>
+        <label><input type="checkbox" id="allon"> all players</label>
+        <button class="toggle" id="kmbtn">★ key-moment mesh</button>
         <span id="ovnote"></span>
       </div>
     </div>
 
-    <div class="card full">
-      <h3>Body parts — usage tickers</h3>
-      <table>
-        <thead><tr><th>part</th><th>usage</th><th>change</th><th>share</th><th>trend</th></tr></thead>
-        <tbody id="rows"></tbody>
-      </table>
+    <div class="card">
+      <h3>Report card — <span id="sc-name"></span></h3>
+      <div class="gaugewrap">
+        <svg id="gauge" width="110" height="110" viewBox="0 0 110 110"></svg>
+        <div class="kpis" id="kpis"></div>
+      </div>
     </div>
 
-    <div class="card full">
-      <h3>Usage share heatmap</h3>
-      <div id="heat"></div>
-    </div>
+    <div class="card"><h3>Body-part usage over time</h3><div id="chart"></div></div>
+    <div class="card"><h3>Activity timeline</h3><div class="bars" id="activity"></div>
+      <h3 style="margin-top:14px">Position heatmap</h3><div class="heatgrid" id="heat"></div></div>
+
+    <div class="card full"><h3>Body parts — usage tickers</h3>
+      <table><thead><tr><th>part</th><th>usage</th><th>change</th><th>share</th><th>trend</th></tr></thead><tbody id="rows"></tbody></table></div>
+
+    <div class="card"><h3>Compare <select id="cmp"></select></h3><div id="radar"></div></div>
+    <div class="card"><h3>Key moment — PEAR ultrazoom mesh</h3>
+      <div class="videowrap" style="aspect-ratio:auto;min-height:220px"><video id="km" controls loop playsinline style="position:relative;width:100%;background:#0d1117"></video></div>
+      <p class="muted" id="kmnote" style="margin:8px 0 0"></p></div>
   </main>
   <script src="/analytics.js"></script>
 </body>
