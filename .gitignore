@@ -1,0 +1,25 @@
+# env / secrets
+.env
+.env.local
+
+# node
+node_modules/
+*.log
+
+# python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# worker scratch
+worker/frames/
+worker/_work/
+*.mp4
+*.pt          # downloaded YOLO weights (e.g. yolov8n.pt)
+.jobid.tmp
+public/analysis/   # worker-generated mesh-overlay videos
+
+# os
+.DS_Store
+Thumbs.db

@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>FIFA 26 Highlights</title>
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@1"></script>
+  <style>
+    :root { color-scheme: dark; --bg:#0b0f14; --card:#151b23; --ink:#e6edf3; --muted:#8b98a5; --accent:#3fb950; }
+    * { box-sizing: border-box; }
+    body { margin:0; font:15px/1.5 system-ui, sans-serif; background:var(--bg); color:var(--ink); }
+    header { padding:16px 20px; border-bottom:1px solid #222c38; display:flex; align-items:center; gap:12px; }
+    header h1 { font-size:18px; margin:0; } header .sub { color:var(--muted); font-size:13px; }
+    main { display:grid; grid-template-columns: 1fr; gap:20px; padding:20px; max-width:1200px; margin:0 auto; }
+    #player-wrap { background:#000; border-radius:10px; overflow:hidden; display:none; }
+    video { width:100%; max-height:62vh; background:#000; display:block; }
+    #panel { display:none; gap:16px; flex-wrap:wrap; }
+    .box { background:var(--card); border:1px solid #222c38; border-radius:10px; padding:14px 16px; flex:1; min-width:280px; }
+    .box h3 { margin:0 0 10px; font-size:14px; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; }
+    .bars { display:flex; align-items:flex-end; gap:4px; height:90px; }
+    .bars div { flex:1; background:var(--accent); border-radius:3px 3px 0 0; min-height:2px; opacity:.85; }
+    .kpis { display:flex; gap:18px; } .kpi b { display:block; font-size:22px; } .kpi span { color:var(--muted); font-size:12px; }
+    select, button { font:inherit; background:#0d1117; color:var(--ink); border:1px solid #30363d; border-radius:7px; padding:7px 10px; }
+    button { cursor:pointer; } button:hover { border-color:var(--accent); }
+    pre { background:#0d1117; border:1px solid #222c38; border-radius:8px; padding:10px; max-height:240px; overflow:auto; font-size:12px; }
+    table#jobs { width:100%; border-collapse:collapse; font-size:13px; margin-top:6px; }
+    table#jobs th { text-align:left; color:var(--muted); font-weight:500; font-size:11px; text-transform:uppercase; border-bottom:1px solid #222c38; padding:4px 6px; }
+    table#jobs td { padding:4px 6px; border-bottom:1px solid #161d26; }
+    .badge { padding:1px 7px; border-radius:10px; font-size:11px; }
+    .s-queued { background:#3a3000; color:#e3b341; } .s-running { background:#0d2a3a; color:#56b6e0; }
+    .s-done { background:#0f2e16; color:#3fb950; } .s-error { background:#3a1414; color:#f85149; }
+    .linkbtn { background:none; border:1px solid #30363d; border-radius:6px; padding:2px 8px; font-size:12px; color:var(--accent); cursor:pointer; }
+    .groups { display:grid; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); gap:14px; }
+    .group h2 { font-size:13px; color:var(--muted); margin:18px 0 8px; }
+    .card { background:var(--card); border:1px solid #222c38; border-radius:10px; overflow:hidden; cursor:pointer; transition:transform .08s, border-color .08s; }
+    .card:hover { transform:translateY(-2px); border-color:var(--accent); }
+    .card .thumb { aspect-ratio:16/9; background:#0d1117 center/cover no-repeat; }
+    .card .meta { padding:8px 10px; } .card .meta b { font-size:13px; } .card .meta span { color:var(--muted); font-size:12px; }
+    .note { color:var(--muted); font-size:12px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>⚽ FIFA 26 Highlights</h1>
+    <span class="sub">watch + analytics</span>
+  </header>
+  <main>
+    <div id="player-wrap"><video id="video" controls playsinline poster=""></video></div>
+    <div id="panel">
+      <div class="box">
+        <h3 id="now-title">Playback analytics</h3>
+        <div class="kpis">
+          <div class="kpi"><b id="k-views">–</b><span>views</span></div>
+          <div class="kpi"><b id="k-watch">–</b><span>avg watch (s)</span></div>
+          <div class="kpi"><b id="k-compl">–</b><span>completion</span></div>
+        </div>
+        <p class="note" style="margin:10px 0 4px">Retention by decile</p>
+        <div class="bars" id="bars"></div>
+      </div>
+      <div class="box" style="flex-basis:100%">
+        <h3>Analysis & jobs</h3>
+        <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap">
+          <select id="pipeline"></select>
+          <label class="note" style="display:flex;align-items:center;gap:5px"><input type="checkbox" id="render"> render mesh overlay</label>
+          <button id="run">Analyze</button>
+        </div>
+        <p class="note" id="pipeline-desc"></p>
+        <table id="jobs"><thead><tr><th>pipeline</th><th>status</th><th>conf</th><th></th></tr></thead><tbody></tbody></table>
+        <p class="note" id="jobs-hint"></p>
+      </div>
+    </div>
+    <div id="catalog"><p class="note">Loading catalog…</p></div>
+  </main>
+  <script src="/app.js"></script>
+</body>
+</html>

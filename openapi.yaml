@@ -1,0 +1,186 @@
+openapi: 3.0.3
+info:
+  title: FIFA Highlights API + Analytics
+  version: 0.1.0
+  description: >
+    Wraps the FIFA Plus highlights CMS and adds a playback-analytics layer and an
+    extensible analysis-job layer. Playback metadata is cacheable; the playback
+    authorization (signed, short-lived) is never cached.
+servers:
+  - url: http://localhost:3000
+paths:
+  /health:
+    get:
+      summary: Liveness probe
+      responses: { '200': { description: ok } }
+  /catalog:
+    get:
+      summary: All highlights (flat, grouped by World Cup group)
+      parameters: [{ $ref: '#/components/parameters/Locale' }]
+      responses:
+        '200':
+          description: catalog
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    videoId: { type: string }
+                    title: { type: string }
+                    group: { type: string }
+                    durationSeconds: { type: number, nullable: true }
+                    thumbnail: { type: string, nullable: true }
+  /videos/{id}:
+    get:
+      summary: Normalized video metadata (cacheable)
+      parameters: [{ $ref: '#/components/parameters/Id' }, { $ref: '#/components/parameters/Locale' }]
+      responses:
+        '200':
+          description: details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id: { type: string }
+                  title: { type: string }
+                  description: { type: string }
+                  durationSeconds: { type: number, nullable: true }
+                  releaseDate: { type: string, nullable: true }
+                  lastEdited: { type: string, nullable: true }
+                  category: { type: string, nullable: true }
+                  subcategory: { type: string, nullable: true }
+                  tags: { type: array, items: { type: string } }
+                  tournament: { type: string, nullable: true }
+        '400': { description: invalid videoId }
+        '502': { description: upstream error }
+  /videos/{id}/playback:
+    get:
+      summary: Playback authorization (short-lived, never cached)
+      description: Returns the normalized Uplynk bundle + a ready-to-resolve preplay `streamUrl`. Sets `Cache-Control: no-store`.
+      parameters: [{ $ref: '#/components/parameters/Id' }, { $ref: '#/components/parameters/Locale' }]
+      responses:
+        '200':
+          description: playback
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  videoType: { type: number, nullable: true }
+                  title: { type: string }
+                  description: { type: string }
+                  poster: { type: object }
+                  uplynk: { type: object, properties: { externalAssetId: { type: string }, assetGuid: { type: string } } }
+                  durationSeconds: { type: number, nullable: true }
+                  requiresToken: { type: boolean }
+                  requiresDRM: { type: boolean }
+                  preplay: { type: object, description: 'cid/exp/sig/rn/tc/queryStr + disallowedCountryCodes' }
+                  ads: { type: object }
+                  streamUrl: { type: string, nullable: true, description: 'Uplynk preplay v2 JSON URL; resolve to playURL (.m3u8)' }
+                  tokenExpiration: { type: string, nullable: true, description: 'ISO time the signed URL expires' }
+        '451': { description: geo-restricted }
+  /videos/{id}/events:
+    post:
+      summary: Ingest a playback analytics event
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [type, sessionId]
+              properties:
+                type: { type: string, enum: [play, pause, seek, complete, heartbeat] }
+                positionSeconds: { type: number }
+                durationSeconds: { type: number }
+                sessionId: { type: string }
+                timestamp: { oneOf: [{ type: number }, { type: string }] }
+      responses:
+        '202': { description: accepted }
+        '400': { description: validation error }
+        '503': { description: analytics store not configured }
+  /videos/{id}/analytics:
+    get:
+      summary: Aggregated playback analytics
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      responses:
+        '200':
+          description: analytics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  views: { type: integer }
+                  avgWatchTimeSeconds: { type: number }
+                  completionRate: { type: number }
+                  dropoff: { type: array, items: { type: number }, description: 'retention per decile (10%..100%)' }
+  /pipelines:
+    get:
+      summary: Registered analysis pipelines
+      responses:
+        '200':
+          description: pipelines
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id: { type: string }
+                    status: { type: string, enum: [ready, experimental, deferred] }
+                    gpu: { type: boolean }
+                    description: { type: string }
+  /videos/{id}/analyze:
+    post:
+      summary: Enqueue an analysis job
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [pipeline]
+              properties:
+                pipeline: { type: string }
+                config: { type: object }
+      responses:
+        '202':
+          description: queued
+          content:
+            application/json:
+              schema: { type: object, properties: { jobId: { type: string } } }
+        '400': { description: unknown pipeline / validation }
+        '503': { description: store not configured }
+  /videos/{id}/analysis:
+    get:
+      summary: List analysis jobs for a video
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      responses: { '200': { description: jobs } }
+  /videos/{id}/analysis/{jobId}:
+    get:
+      summary: Get a single analysis job (status + result)
+      parameters:
+        - { $ref: '#/components/parameters/Id' }
+        - { name: jobId, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { description: job }
+        '404': { description: not found }
+components:
+  parameters:
+    Id:
+      name: id
+      in: path
+      required: true
+      schema: { type: string, pattern: '^[A-Za-z0-9]{10,30}$' }
+    Locale:
+      name: locale
+      in: query
+      required: false
+      schema: { type: string, default: en }

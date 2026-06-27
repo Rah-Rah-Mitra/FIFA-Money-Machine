@@ -1,0 +1,25 @@
+# --- worker core (light) ---
+supabase>=2.4
+python-dotenv>=1.0
+requests>=2.31
+numpy>=1.26
+pandas>=2.0
+
+# --- player_tracking / mesh_pose orchestration (heavier; pulls torch via ultralytics) ---
+ultralytics>=8.2          # YOLOv8 detection
+supervision>=0.20,<0.30   # ByteTrack tracker + Detections helpers (ByteTrack API removed in 0.30)
+opencv-python>=4.9
+imageio-ffmpeg>=0.4        # bundles an ffmpeg binary (no system ffmpeg needed)
+
+# --- match_model + soccer analytics ---
+penaltyblog>=1.0          # Dixon-Coles / Poisson match modelling (optional path)
+soccerdata>=1.6           # FBref/Understat/Sofascore scrapers (optional path)
+mplsoccer>=1.2            # pitch viz
+socceraction>=1.4         # xT / VAEP (optional)
+scikit-learn>=1.4         # team colour clustering
+
+# Optional extras the user named (install as needed; not imported unless used):
+#   statsmodels xgboost lightgbm pymc statsbombpy kloppy unravelsports
+#
+# mesh_pose runs PEAR in its OWN env at $PEAR_DIR/.venv — do NOT install PEAR/pytorch3d here.
+# ffmpeg must be available on PATH for frame extraction.

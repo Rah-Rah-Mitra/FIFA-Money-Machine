@@ -1,0 +1,12 @@
+[
+  { "id": "video_metadata", "status": "ready", "gpu": false,
+    "description": "Reference pipeline: returns normalized FIFA metadata for the video. Proves the job contract end-to-end." },
+  { "id": "playback_stats", "status": "ready", "gpu": false,
+    "description": "Snapshot of playback analytics (views, watch time, completion rate, per-decile drop-off)." },
+  { "id": "player_tracking", "status": "ready", "gpu": false,
+    "description": "YOLOv8 + ByteTrack player detection/tracking with team color clustering; outputs per-track boxes + a pitch heatmap." },
+  { "id": "match_model", "status": "ready", "gpu": false,
+    "description": "Match-result model (Dixon-Coles/Poisson) + xT/VAEP value metrics from public event data. Video-independent estimate." },
+  { "id": "mesh_pose", "status": "experimental", "gpu": true,
+    "description": "PEAR SMPLX human-mesh recovery per tracked player; derives camera-space kinematics. Requires an NVIDIA GPU." }
+]
