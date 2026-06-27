@@ -51,8 +51,8 @@ export async function listScenes() {
   const sb = requireSupabase();
   const { data, error } = await sb
     .from('analysis_jobs')
-    .select('id,video_id,result,created_at')
-    .eq('pipeline', 'mesh_scene')
+    .select('id,video_id,pipeline,result,created_at')
+    .in('pipeline', ['full_analysis', 'pose_scene', 'mesh_scene'])
     .eq('status', 'done')
     .order('created_at', { ascending: false })
     .limit(200);
