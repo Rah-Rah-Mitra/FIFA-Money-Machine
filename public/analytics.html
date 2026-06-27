@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Player Analytics</title>
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@1"></script>
+  <style>
+    :root { color-scheme: dark; --bg:#0b0f14; --card:#151b23; --ink:#e6edf3; --muted:#8b98a5; --accent:#3fb950; --red:#f85149; --line:#222c38; }
+    * { box-sizing: border-box; }
+    body { margin:0; font:14px/1.5 system-ui, sans-serif; background:var(--bg); color:var(--ink); }
+    header { padding:12px 18px; border-bottom:1px solid var(--line); display:flex; align-items:center; gap:14px; }
+    header h1 { font-size:16px; margin:0; }
+    a.back { color:var(--muted); text-decoration:none; } a.back:hover { color:var(--ink); }
+    main { max-width:1280px; margin:0 auto; padding:16px; display:grid; gap:16px; grid-template-columns: 1.3fr 1fr; }
+    .full { grid-column:1 / -1; }
+    .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:14px 16px; }
+    .card h3 { margin:0 0 10px; font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; }
+    /* player chips */
+    #players { display:flex; gap:8px; flex-wrap:wrap; }
+    .chip { display:flex; align-items:center; gap:7px; background:#0d1117; border:1px solid var(--line); border-radius:20px; padding:5px 12px; cursor:pointer; }
+    .chip.active { border-color:var(--accent); background:#10241a; }
+    .dot { width:11px; height:11px; border-radius:50%; }
+    .chip input { background:none; border:none; color:var(--ink); font:inherit; width:90px; }
+    .chip .fs { color:var(--muted); font-size:11px; }
+    /* video + overlay */
+    .videowrap { position:relative; background:#000; border-radius:10px; overflow:hidden; aspect-ratio:16/9; }
+    .videowrap video { position:absolute; inset:0; width:100%; height:100%; object-fit:contain; }
+    #ov { pointer-events:none; }
+    .vbar { display:flex; gap:12px; align-items:center; margin-top:8px; color:var(--muted); font-size:12px; }
+    /* table */
+    table { width:100%; border-collapse:collapse; }
+    th { text-align:left; color:var(--muted); font-size:11px; text-transform:uppercase; border-bottom:1px solid var(--line); padding:6px; font-weight:500; }
+    td { padding:8px 6px; border-bottom:1px solid #161d26; }
+    .tick { font-weight:600; letter-spacing:.03em; }
+    .up { color:var(--accent); } .down { color:var(--red); }
+    /* heatmap */
+    #heat { display:flex; gap:4px; height:120px; align-items:stretch; }
+    #heat .tile { border-radius:8px; padding:8px; display:flex; flex-direction:column; justify-content:space-between; color:#06210f; font-weight:600; overflow:hidden; min-width:36px; }
+    #heat .tile small { font-size:10px; opacity:.85; }
+    .muted { color:var(--muted); }
+    button.toggle { font:inherit; background:#0d1117; color:var(--ink); border:1px solid var(--line); border-radius:7px; padding:5px 10px; cursor:pointer; }
+    @media (max-width:900px){ main { grid-template-columns:1fr; } }
+  </style>
+</head>
+<body>
+  <header>
+    <a class="back" href="/">← markets</a>
+    <h1 id="title">Player Analytics</h1>
+    <span class="muted" id="sub"></span>
+  </header>
+  <main>
+    <div class="card full">
+      <h3>Players <span class="muted" style="text-transform:none">— click a name to rename</span></h3>
+      <div id="players"><span class="muted">loading…</span></div>
+    </div>
+
+    <div class="card">
+      <h3>Body-part usage over screen time</h3>
+      <div id="chart"></div>
+    </div>
+
+    <div class="card">
+      <h3>Mesh overlay</h3>
+      <div class="videowrap"><video id="hl" muted playsinline></video><video id="ov" muted loop playsinline></video></div>
+      <div class="vbar">
+        <label><input type="checkbox" id="ovon" checked> show mesh</label>
+        <button class="toggle" id="playbtn">▶ play</button>
+        <span id="ovnote"></span>
+      </div>
+    </div>
+
+    <div class="card full">
+      <h3>Body parts — usage tickers</h3>
+      <table>
+        <thead><tr><th>part</th><th>usage</th><th>change</th><th>share</th><th>trend</th></tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+
+    <div class="card full">
+      <h3>Usage share heatmap</h3>
+      <div id="heat"></div>
+    </div>
+  </main>
+  <script src="/analytics.js"></script>
+</body>
+</html>

@@ -14,6 +14,8 @@ async function json(url, opts) {
 // ---------- catalog ----------
 async function loadCatalog() {
   const items = await json('/catalog');
+  const sceneSet = new Set();
+  try { (await json('/scenes')).forEach((s) => sceneSet.add(s.video_id)); } catch {}
   const groups = {};
   for (const it of items) (groups[it.group] ??= []).push(it);
   const root = $('catalog');
@@ -28,9 +30,11 @@ async function loadCatalog() {
       const card = document.createElement('div');
       card.className = 'card';
       const mins = it.durationSeconds ? `${Math.floor(it.durationSeconds / 60)}:${String(Math.round(it.durationSeconds % 60)).padStart(2, '0')}` : '';
-      card.innerHTML = `<div class="thumb" style="background-image:url('${it.thumbnail ?? ''}')"></div>
+      const badge = sceneSet.has(it.videoId) ? '<span class="abadge" title="analytics available">📊</span>' : '';
+      card.innerHTML = `<div class="thumb" style="background-image:url('${it.thumbnail ?? ''}')">${badge}</div>
         <div class="meta"><b>${it.title}</b><br><span>${mins}</span></div>`;
       card.onclick = () => play(it.videoId, it.title);
+      if (badge) card.querySelector('.abadge').onclick = (e) => { e.stopPropagation(); location.href = `/analytics.html?video=${it.videoId}`; };
       grid.appendChild(card);
     }
     sec.appendChild(grid);
@@ -171,8 +175,10 @@ function renderJobs(jobs) {
   tbody.innerHTML = jobs.slice(0, 12).map((j) => {
     const conf = j.confidence == null ? '–' : j.confidence;
     const overlay = j.result && j.result.overlayUrl
-      ? `<button class="linkbtn" onclick="showOverlay('${j.result.overlayUrl}')">▶ overlay</button>` : '';
-    return `<tr><td>${j.pipeline}</td><td><span class="badge s-${j.status}">${j.status}</span></td><td>${conf}</td><td>${overlay}</td></tr>`;
+      ? `<button class="linkbtn" onclick="showOverlay('${j.result.overlayUrl}')">▶ overlay</button> ` : '';
+    const analytics = j.result && Array.isArray(j.result.players) && j.result.players.length
+      ? `<a class="linkbtn" href="/analytics.html?video=${current}">📊 analytics</a>` : '';
+    return `<tr><td>${j.pipeline}</td><td><span class="badge s-${j.status}">${j.status}</span></td><td>${conf}</td><td>${overlay}${analytics}</td></tr>`;
   }).join('') || '<tr><td colspan="4" class="note">No jobs yet — pick a pipeline and Analyze.</td></tr>';
 }
 
