@@ -14,9 +14,8 @@ def run(ctx):
     fps = cfg.get("fps", 2)
     start = cfg.get("startSeconds")
 
-    play = ingest.get_play_url(ctx.api_base, ctx.video_id)
     frames_dir = os.path.abspath(f"{ctx.work_dir}/frames")
-    frames = ingest.extract_frames(play, frames_dir, fps=fps, max_seconds=cfg.get("maxSeconds", 8), start_seconds=start)
+    frames = ingest.frames_for(ctx.api_base, ctx.video_id, frames_dir, fps=fps, max_seconds=cfg.get("maxSeconds", 8), start_seconds=start)
 
     # 1) fast per-player usage stats (MediaPipe)
     stats = analyze_players.analyze_frames(frames, fps=fps, start_seconds=start or 0, cfg=cfg)

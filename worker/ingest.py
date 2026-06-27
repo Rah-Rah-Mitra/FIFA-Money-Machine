@@ -34,7 +34,9 @@ def extract_frames(
 ) -> list[str]:
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
-    args = [_ffmpeg_bin(), "-y", "-nostdin", "-loglevel", "error"]
+    # Uplynk 403s ffmpeg's default "Lavf" UA — present as a browser.
+    ua = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36"
+    args = [_ffmpeg_bin(), "-y", "-nostdin", "-loglevel", "error", "-user_agent", ua]
     if start_seconds:  # fast input seek (before -i) to skip intro/ad cards
         args += ["-ss", str(start_seconds)]
     args += ["-i", play_url, "-vf", f"fps={fps}"]
@@ -46,3 +48,18 @@ def extract_frames(
     except subprocess.CalledProcessError as e:
         raise RuntimeError(f"ffmpeg failed ({e.returncode}): {(e.stderr or '')[-500:]}") from e
     return sorted(str(p) for p in out.glob("*.jpg"))
+
+
+def frames_for(api_base, video_id, out_dir, fps=2, max_seconds=None, start_seconds=None, retries=3):
+    """Resolve a fresh stream + extract frames, retrying on transient Uplynk 403s (token/edge hiccups)."""
+    last = None
+    for _ in range(retries):
+        try:
+            play = get_play_url(api_base, video_id)
+            frames = extract_frames(play, out_dir, fps=fps, max_seconds=max_seconds, start_seconds=start_seconds)
+            if frames:
+                return frames
+            last = RuntimeError("no frames extracted")
+        except Exception as e:  # noqa: BLE001
+            last = e
+    raise last

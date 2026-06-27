@@ -86,9 +86,8 @@ def run(ctx):
 
     cfg = ctx.config or {}
     fps = cfg.get("fps", 2)
-    play = ingest.get_play_url(ctx.api_base, ctx.video_id)
     frames_dir = os.path.abspath(f"{ctx.work_dir}/frames")
-    ingest.extract_frames(play, frames_dir, fps=fps, max_seconds=cfg.get("maxSeconds", 30), start_seconds=cfg.get("startSeconds"))
+    ingest.frames_for(ctx.api_base, ctx.video_id, frames_dir, fps=fps, max_seconds=cfg.get("maxSeconds", 30), start_seconds=cfg.get("startSeconds"))
 
     out_json = os.path.abspath(f"{ctx.work_dir}/pear.json")
     adapter = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "pear_adapter.py"))

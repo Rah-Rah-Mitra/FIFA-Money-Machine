@@ -9,8 +9,7 @@ def run(ctx):
     cfg = ctx.config or {}
     fps = cfg.get("fps", 3)
     start = cfg.get("startSeconds")
-    play = ingest.get_play_url(ctx.api_base, ctx.video_id)
-    frames = ingest.extract_frames(play, f"{ctx.work_dir}/frames", fps=fps, max_seconds=cfg.get("maxSeconds", 20), start_seconds=start)
+    frames = ingest.frames_for(ctx.api_base, ctx.video_id, f"{ctx.work_dir}/frames", fps=fps, max_seconds=cfg.get("maxSeconds", 20), start_seconds=start)
     stats = analyze_players.analyze_frames(frames, fps=fps, start_seconds=start or 0, cfg=cfg)
 
     players = stats["players"]

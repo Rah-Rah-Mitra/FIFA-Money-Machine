@@ -24,8 +24,7 @@ def run(ctx):
     max_seconds = cfg.get("maxSeconds", 60)
     grid_w, grid_h = cfg.get("gridW", 12), cfg.get("gridH", 8)
 
-    play = ingest.get_play_url(ctx.api_base, ctx.video_id)
-    frames = ingest.extract_frames(play, f"{ctx.work_dir}/frames", fps=fps, max_seconds=max_seconds, start_seconds=cfg.get("startSeconds"))
+    frames = ingest.frames_for(ctx.api_base, ctx.video_id, f"{ctx.work_dir}/frames", fps=fps, max_seconds=max_seconds, start_seconds=cfg.get("startSeconds"))
     if not frames:
         return {"result": {"status": "no_frames"}, "confidence": None}
 

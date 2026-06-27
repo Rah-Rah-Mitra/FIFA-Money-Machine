@@ -1,7 +1,21 @@
 """Shared player analytics: YOLO+ByteTrack tracks -> per-player MediaPipe Pose landmarks ->
 body-part 'usage' time series (the data behind the stock-market UI). Heavy deps are imported
 lazily so the pure usage math (compute_usage) stays importable for the self-check."""
+import os
+import urllib.request
+
 import numpy as np
+
+_MODEL_URL = "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/latest/pose_landmarker_lite.task"
+
+
+def _ensure_pose_model():
+    d = os.path.join(os.path.dirname(__file__), "models")
+    os.makedirs(d, exist_ok=True)
+    path = os.path.join(d, "pose_landmarker_lite.task")
+    if not os.path.exists(path):
+        urllib.request.urlretrieve(_MODEL_URL, path)
+    return path
 
 # MediaPipe Pose 33-landmark groups -> 6 body parts shown as "tickers".
 BODY_PARTS = {
@@ -57,13 +71,21 @@ def analyze_frames(frames, fps=2, start_seconds=0, cfg=None):
     from ultralytics import YOLO
     import supervision as sv
     import mediapipe as mp
+    from mediapipe.tasks import python as mp_python
+    from mediapipe.tasks.python import vision
 
     cfg = cfg or {}
     buckets = cfg.get("buckets", 12)
     device = 0 if torch.cuda.is_available() else "cpu"
     model = YOLO(cfg.get("model", "yolov8n.pt"))
     tracker = sv.ByteTrack(frame_rate=int(fps))
-    pose = mp.solutions.pose.Pose(static_image_mode=True, model_complexity=1, min_detection_confidence=0.5)
+    landmarker = vision.PoseLandmarker.create_from_options(
+        vision.PoseLandmarkerOptions(
+            base_options=mp_python.BaseOptions(model_asset_path=_ensure_pose_model()),
+            running_mode=vision.RunningMode.IMAGE,
+            num_poses=1,
+        )
+    )
 
     seqs = {}        # track_id -> [(frame_idx, world_landmarks)]
     colors = {}      # track_id -> [bgr torso samples]
@@ -87,11 +109,12 @@ def analyze_frames(frames, fps=2, start_seconds=0, cfg=None):
             torso = crop[int(th * 0.15): int(th * 0.5)]
             if torso.size:
                 colors.setdefault(tid, []).append(torso.reshape(-1, 3).mean(axis=0))
-            r = pose.process(cv2.cvtColor(crop, cv2.COLOR_BGR2RGB))
-            if r.pose_world_landmarks:
-                lm = np.array([[p.x, p.y, p.z] for p in r.pose_world_landmarks.landmark], dtype=np.float32)
+            rgb = np.ascontiguousarray(cv2.cvtColor(crop, cv2.COLOR_BGR2RGB))
+            res = landmarker.detect(mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb))
+            if res.pose_world_landmarks:
+                lm = np.array([[p.x, p.y, p.z] for p in res.pose_world_landmarks[0]], dtype=np.float32)
                 seqs.setdefault(tid, []).append((idx, lm))
-    pose.close()
+    landmarker.close()
 
     # team assignment via 2-means over mean jersey colour
     team_of = {}
