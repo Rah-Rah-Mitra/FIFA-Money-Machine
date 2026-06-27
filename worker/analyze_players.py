@@ -45,16 +45,19 @@ def compute_usage(seq, frame_range, buckets=12):
             parts[p]["series"][b] += move
             parts[p]["total"] += move
     grand = sum(p["total"] for p in parts.values()) or 1.0
+    steps = max(1, len(seq) - 1)
+    half = buckets // 2
     out = {}
     for p in PART_ORDER:
         s = parts[p]["series"]
-        last, prev = s[-1], s[-2] if buckets >= 2 else 0.0
+        a = sum(s[:half]) / max(1, half)
+        b2 = sum(s[half:]) / max(1, buckets - half)
         out[p] = {
-            "series": [round(v * 100, 3) for v in s],          # scale to readable "price"
+            "series": [round(v * 100, 3) for v in s],
             "total": round(parts[p]["total"] * 100, 3),
             "sharePct": round(parts[p]["total"] / grand * 100, 2),
-            "changePct": round((last - prev) / prev * 100, 1) if prev > 1e-9 else 0.0,
-            "price": round(last * 100, 3),
+            "changePct": round((b2 - a) / a * 100, 1) if a > 1e-9 else 0.0,  # 2nd vs 1st half
+            "price": round(parts[p]["total"] / steps * 100, 3),             # avg usage intensity
         }
     return out
 

@@ -86,6 +86,22 @@ function selectPlayer(i) {
 
 function curParts() { return players[sel].parts; }
 
+// Display metrics from the per-bucket series. price = average intensity over ACTIVE buckets;
+// change = trend in this part's *dominance* (its share within each bucket), so it varies per part
+// instead of just tracking whether the player is on screen.
+const _present = (a) => a.filter((v) => v > 1e-9);
+const _avg = (a) => (a.length ? a.reduce((x, y) => x + y, 0) / a.length : 0);
+function metrics(parts, k) {
+  const s = parts[k].series || [];
+  const n = s.length || 1, h = Math.floor(n / 2);
+  const price = _avg(_present(s));
+  const tot = s.map((_, b) => partOrder.reduce((a, p) => a + (parts[p].series[b] || 0), 0));
+  const sh = s.map((v, b) => (tot[b] > 1e-9 ? (v / tot[b]) * 100 : 0));
+  const a = _avg(_present(sh.slice(0, h))), b = _avg(_present(sh.slice(h)));
+  const change = a > 1e-9 ? ((b - a) / a) * 100 : 0;
+  return { price, change, share: parts[k].sharePct };
+}
+
 // ---- line chart: each part over time buckets ----
 function renderChart() {
   const parts = curParts();
@@ -112,12 +128,12 @@ function spark(series, color) {
 function renderTable() {
   const parts = curParts();
   $('rows').innerHTML = partOrder.map((k) => {
-    const p = parts[k], up = p.changePct >= 0;
+    const p = parts[k], m = metrics(parts, k), up = m.change >= 0;
     return `<tr>
       <td class="tick" style="color:${PART_META[k].color}">${PART_META[k].label}</td>
-      <td>${p.price.toFixed(1)}</td>
-      <td class="${up ? 'up' : 'down'}">${up ? '+' : ''}${p.changePct.toFixed(1)}%</td>
-      <td>${p.sharePct.toFixed(1)}%</td>
+      <td>${m.price.toFixed(1)}</td>
+      <td class="${up ? 'up' : 'down'}">${up ? '+' : ''}${m.change.toFixed(1)}%</td>
+      <td>${m.share.toFixed(1)}%</td>
       <td>${spark(p.series, PART_META[k].color)}</td>
     </tr>`;
   }).join('');
@@ -127,12 +143,11 @@ function renderTable() {
 function renderHeat() {
   const parts = curParts();
   $('heat').innerHTML = partOrder.map((k) => {
-    const p = parts[k];
-    const g = p.changePct >= 0;
-    const inten = Math.min(0.85, 0.25 + Math.abs(p.changePct) / 100);
+    const p = parts[k], m = metrics(parts, k), g = m.change >= 0;
+    const inten = Math.min(0.85, 0.3 + Math.abs(m.change) / 100);
     const bg = g ? `rgba(63,185,80,${inten})` : `rgba(248,81,73,${inten})`;
-    return `<div class="tile" style="flex-grow:${Math.max(2, p.sharePct)};background:${bg}">
-      <div>${PART_META[k].label}</div><small>${p.sharePct.toFixed(0)}% · ${g ? '+' : ''}${p.changePct.toFixed(0)}%</small></div>`;
+    return `<div class="tile" style="flex-grow:${Math.max(2, m.share)};background:${bg}">
+      <div>${PART_META[k].label}</div><small>${m.share.toFixed(0)}% · ${g ? '+' : ''}${m.change.toFixed(0)}%</small></div>`;
   }).join('');
 }
 
