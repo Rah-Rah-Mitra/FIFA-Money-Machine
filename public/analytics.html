@@ -9,9 +9,21 @@
     :root { color-scheme: dark; --bg:#0b0f14; --card:#151b23; --ink:#e6edf3; --muted:#8b98a5; --accent:#3fb950; --red:#f85149; --line:#222c38; }
     * { box-sizing: border-box; }
     body { margin:0; font:14px/1.5 system-ui, sans-serif; background:var(--bg); color:var(--ink); }
-    header { padding:12px 18px; border-bottom:1px solid var(--line); display:flex; align-items:center; gap:14px; }
-    header h1 { font-size:16px; margin:0; }
-    a.back { color:var(--muted); text-decoration:none; } a.back:hover { color:var(--ink); }
+    .nav { display:flex; align-items:center; gap:14px; padding:12px 20px; border-bottom:1px solid var(--line); background:var(--card); position:sticky; top:0; z-index:20; }
+    .nav .brand { font-weight:700; color:var(--ink); text-decoration:none; margin-right:6px; }
+    .nav a.navlink { color:var(--muted); text-decoration:none; padding:6px 13px; border-radius:8px; font-size:14px; }
+    .nav a.navlink:hover { color:var(--ink); background:#0d1117; }
+    .nav a.navlink.active { color:var(--ink); background:#10241a; border:1px solid var(--accent); }
+    .nav .spacer { flex:1; }
+    .titlebar { padding:12px 20px; display:flex; align-items:center; gap:14px; border-bottom:1px solid var(--line); }
+    .titlebar h1 { font-size:16px; margin:0; }
+    /* hub */
+    #hub { max-width:1280px; margin:0 auto; padding:16px; }
+    .hubgrid { display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:14px; margin-top:10px; }
+    .scard { background:var(--card); border:1px solid var(--line); border-radius:12px; overflow:hidden; cursor:pointer; text-decoration:none; color:var(--ink); display:block; }
+    .scard:hover { border-color:var(--accent); }
+    .scard .th { aspect-ratio:16/9; background:#0d1117 center/cover no-repeat; }
+    .scard .m { padding:9px 11px; } .scard .m b { font-size:13px; } .scard .m span { color:var(--muted); font-size:12px; }
     main { max-width:1280px; margin:0 auto; padding:16px; display:grid; gap:16px; grid-template-columns: 1.3fr 1fr; }
     .full { grid-column:1 / -1; }
     .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:14px 16px; }
@@ -44,12 +56,25 @@
   </style>
 </head>
 <body>
-  <header>
-    <a class="back" href="/">← markets</a>
+  <nav class="nav">
+    <a class="brand" href="/">⚽ FIFA Money Machine</a>
+    <a class="navlink" href="/">Markets</a>
+    <a class="navlink active" href="/analytics.html">Analytics</a>
+    <span class="spacer"></span>
+    <span class="muted" style="font-size:13px">player body-part usage</span>
+  </nav>
+  <div class="titlebar">
     <h1 id="title">Player Analytics</h1>
     <span class="muted" id="sub"></span>
-  </header>
-  <main>
+  </div>
+
+  <div id="hub" style="display:none">
+    <p class="muted">Pick a match with generated analytics. Don't see yours? Open it in
+      <a href="/" style="color:var(--accent)">Markets</a>, run <b>mesh_scene</b> (or <b>player_stats</b>), then come back.</p>
+    <div class="hubgrid" id="hubgrid"></div>
+  </div>
+
+  <main id="dash" style="display:none">
     <div class="card full">
       <h3>Players <span class="muted" style="text-transform:none">— click a name to rename</span></h3>
       <div id="players"><span class="muted">loading…</span></div>

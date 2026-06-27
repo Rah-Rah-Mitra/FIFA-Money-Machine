@@ -9,6 +9,12 @@
     :root { color-scheme: dark; --bg:#0b0f14; --card:#151b23; --ink:#e6edf3; --muted:#8b98a5; --accent:#3fb950; }
     * { box-sizing: border-box; }
     body { margin:0; font:15px/1.5 system-ui, sans-serif; background:var(--bg); color:var(--ink); }
+    .nav { display:flex; align-items:center; gap:14px; padding:12px 20px; border-bottom:1px solid #222c38; background:var(--card); position:sticky; top:0; z-index:20; }
+    .nav .brand { font-weight:700; color:var(--ink); text-decoration:none; margin-right:6px; }
+    .nav a.navlink { color:var(--muted); text-decoration:none; padding:6px 13px; border-radius:8px; font-size:14px; }
+    .nav a.navlink:hover { color:var(--ink); background:#0d1117; }
+    .nav a.navlink.active { color:var(--ink); background:#10241a; border:1px solid var(--accent); }
+    .nav .spacer { flex:1; }
     header { padding:16px 20px; border-bottom:1px solid #222c38; display:flex; align-items:center; gap:12px; }
     header h1 { font-size:18px; margin:0; } header .sub { color:var(--muted); font-size:13px; }
     main { display:grid; grid-template-columns: 1fr; gap:20px; padding:20px; max-width:1200px; margin:0 auto; }
@@ -42,10 +48,13 @@
   </style>
 </head>
 <body>
-  <header>
-    <h1>⚽ FIFA 26 Highlights</h1>
-    <span class="sub">watch + analytics</span>
-  </header>
+  <nav class="nav">
+    <a class="brand" href="/">⚽ FIFA Money Machine</a>
+    <a class="navlink active" href="/">Markets</a>
+    <a class="navlink" href="/analytics.html">Analytics</a>
+    <span class="spacer"></span>
+    <span class="sub" style="color:var(--muted);font-size:13px">watch · player analytics</span>
+  </nav>
   <main>
     <div id="player-wrap"><video id="video" controls playsinline poster=""></video></div>
     <div id="panel">

@@ -24,8 +24,27 @@ async function json(url, opts) {
   return r.json();
 }
 
+async function renderHub() {
+  $('title').textContent = 'Analytics';
+  $('hub').style.display = 'block';
+  const [scenes, catalog] = await Promise.all([json('/scenes').catch(() => []), json('/catalog').catch(() => [])]);
+  const meta = Object.fromEntries(catalog.map((c) => [c.videoId, c]));
+  const seen = new Set(), items = [];
+  for (const s of scenes) { if (!seen.has(s.video_id)) { seen.add(s.video_id); items.push(s); } }
+  const grid = $('hubgrid');
+  if (!items.length) { grid.innerHTML = '<p class="muted">No analytics generated yet — run mesh_scene on a match from Markets.</p>'; return; }
+  grid.innerHTML = items.map((s) => {
+    const m = meta[s.video_id] || {};
+    const n = s.result && s.result.players ? s.result.players.length : 0;
+    return `<a class="scard" href="/analytics.html?video=${s.video_id}">
+      <div class="th" style="background-image:url('${m.thumbnail || ''}')"></div>
+      <div class="m"><b>${m.title || s.video_id}</b><br><span>${n} players · mesh overlay</span></div></a>`;
+  }).join('');
+}
+
 async function load() {
-  if (!videoId) { $('title').textContent = 'No video specified'; return; }
+  if (!videoId) { return renderHub(); }
+  $('dash').style.display = 'grid';
   let details = {};
   try { details = await json(`/videos/${videoId}`); } catch {}
   $('title').textContent = `Player Analytics — ${details.title || videoId}`;
