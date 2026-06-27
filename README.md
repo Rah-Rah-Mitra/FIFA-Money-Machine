@@ -57,6 +57,11 @@ Requires the GPU PEAR env; overlays are written to `public/analysis/<jobId>.mp4`
   `.\run-worker.ps1`. The API no longer logs the poll endpoints, and the UI stops polling once no job
   is queued/running.
 - **`mesh_pose` returns `gpu_required`** → no CUDA; set `PEAR_DIR`/`PEAR_PYTHON` to a GPU PEAR install.
+- **GPU sits idle** → the worker venv must have a CUDA torch build (the default PyPI torch is CPU-only):
+  `worker/.venv/Scripts/pip install --index-url https://download.pytorch.org/whl/cu126 torch torchvision`.
+- **Uplynk 403 in the worker** → handled (ffmpeg sends a browser UA + retries). On Python 3.13 MediaPipe
+  ships only the Tasks API (no legacy `mp.solutions`) — the code uses `PoseLandmarker` accordingly.
+- **Restart workers after pulling code** — long-running `worker.py` loops cache the pipeline registry.
 
 ## Endpoints
 
@@ -82,6 +87,18 @@ Full schema at `/openapi.yaml` (rendered at `/docs`).
 | `player_tracking` | ready | YOLOv8 + ByteTrack, team colour clustering, position heatmap |
 | `match_model` | ready | Poisson/Dixon-Coles scoreline estimate (pass `config.matches` for a data fit) |
 | `mesh_pose` | experimental | PEAR SMPLX mesh per player → camera-space kinematics (**GPU**) |
+| `player_stats` | ready | per-player body-part usage via MediaPipe Pose (fast) — feeds the stock-market UI |
+| `mesh_scene` | ready | full scene: body-part usage + a **transparent** PEAR mesh-overlay `.webm` + the 📊 tag (**GPU**) |
+
+### Player analytics (stock-market UI)
+
+Generate a scene (`mesh_scene`, or `player_stats` for stats-only) → the video gets a 📊 badge →
+open `analytics.html?video=<id>`. Each tracked player is a "stock"; each body part (HEAD, CORE,
+L/R ARM, L/R LEG) is a ticker with usage intensity, a dominance-trend change%, share, and a
+sparkline, plus a usage-over-time chart, a share heatmap, and the transparent mesh overlay layered
+on the highlight. Players auto-tag as "Player N" with their team colour — click a name to rename
+(persists per video). Body-part usage = summed 3D displacement of each part's MediaPipe world
+landmarks over screen time.
 
 Content-analytics results carry a `confidence` and a feasibility note: highlights are heavily
 cut/zoomed, so derived player stats are estimates and match-result prediction is low-confidence.
