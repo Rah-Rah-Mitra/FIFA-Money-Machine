@@ -88,7 +88,22 @@ Full schema at `/openapi.yaml` (rendered at `/docs`).
 | `match_model` | ready | Poisson/Dixon-Coles scoreline estimate (pass `config.matches` for a data fit) |
 | `mesh_pose` | experimental | PEAR SMPLX mesh per player → camera-space kinematics (**GPU**) |
 | `player_stats` | ready | per-player body-part usage via MediaPipe Pose (fast) — feeds the stock-market UI |
-| `mesh_scene` | ready | full scene: body-part usage + a **transparent** PEAR mesh-overlay `.webm` + the 📊 tag (**GPU**) |
+| `mesh_scene` | ready | body-part usage + a **transparent** PEAR mesh-overlay `.webm` (**GPU**) |
+| `pose_scene` | ready | **default engine** — GPU YOLO-pose multi-person keypoints + rich metrics + a keypoints file for the live skeleton overlay (fast, ~30× PEAR's per-frame speed) |
+| `full_analysis` | ready | `pose_scene` **+** an auto PEAR **ultrazoom** mesh of the key player's busiest window (cropped + low-res so PEAR runs at ~12 fps, smooth). The full demo. (**GPU**) |
+
+### What the dashboard shows (Hudl-style)
+
+Live skeleton overlay synced to the highlight (per-player + all-players toggle); a **report card**
+(work-rate gauge + distance / max-speed / sprints / L-R symmetry / posture lean / screen-time);
+body-part **usage-over-time** chart + **tickers** (price/change/share + sparkline); **activity
+timeline**; **position heatmap**; **radar comparison** (vs another player or team avg); and the
+**key-moment PEAR ultrazoom** mesh. All metrics are size-normalised by bbox so distant players are
+fair. Reach it from the **Analytics** nav (a hub of analysed matches) or the 📊 badge on Markets.
+
+GPU note: the worker venv must have CUDA torch (see Troubleshooting). `pose_scene` runs many players
+fast; run several workers in parallel for light jobs, but serialise `full_analysis` (PEAR) to stay
+within 8 GB VRAM.
 
 ### Player analytics (stock-market UI)
 
